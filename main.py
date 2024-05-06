@@ -1,11 +1,11 @@
 import uasyncio as asyncio
 from machine import Pin
 from rotary_irq_rp2 import RotaryIRQ
-from oled import showTime, fillDisplay
 from primitives import Pushbutton, delay_ms
 from buzzer_music import music
 from utime import sleep, sleep_ms
 import lowpower
+from oled import showTime, fillDisplay
 
 
 # Initiating encoder
@@ -27,7 +27,7 @@ btn = Pushbutton(btn_pin, suppress=True)
 
 # Global variables
 btn_state = [0, 0, 0, 0]
-alarm_trg = False 
+alarm_trg = False
 
 
 async def buttonMonitor(new_value, index):
@@ -44,7 +44,7 @@ btn.long_func(buttonMonitor, (1, 3))
 
 
 async def go_to_sleep():
-    """Executes when sleep_timer reaches 10s"""
+    """Executes when sleep_timer reaches 10s."""
     global btn_state
     sleep_timer.stop()
     fillDisplay(0)
@@ -55,11 +55,11 @@ async def go_to_sleep():
     await asyncio.sleep_ms(0)
 
 
-sleep_timer = delay_ms.Delay_ms(go_to_sleep, duration=10000) # Initiating sleep timer
+sleep_timer = delay_ms.Delay_ms(go_to_sleep, duration=10000)  # Initiating sleep timer
 
 
 async def soundAlarm():
-    """Plays a predefined song using the "music" function"""
+    """Plays a predefined song using the "music" function."""
     song = "0 F5 1 34;1 C6 1 34;2 C6 1 34;2 E6 1 34;3 F6 1 34;4 C7 1 34;6 A6 1 34;7 E7 2 34"
     mySong = music(song, pins=[Pin(5, Pin.OUT, Pin.PULL_UP)], looping=False)
     while mySong.tick():
@@ -70,33 +70,30 @@ async def soundAlarm():
 async def setTime(current_value=0):
     """Listens for encoder changes and prints the current value."""
     global alarm_trg
-    if current_value > 0 and not alarm_trg: # Keeps last value if alarm hasn't sounded
+    if current_value > 0 and not alarm_trg:  # Keeps last value if alarm hasn't sounded
         r.set(value=current_value)
     alarm_trg = False
-    
+
     global btn_state
     btn_state = [0, 0, 0, 0]
-    
-    sleep_timer.trigger() # Starting the timout timer
+
+    sleep_timer.trigger()  # Starting the timout timer
     await asyncio.sleep_ms(0)
-    
+
     while btn_state != [1, 1, 0, 0]:
         # Check for encoder changes
         new_value = r.value()
-        if new_value > current_value: # Increase
+        if new_value > current_value:  # Increase
             current_value = new_value
             current_value -= current_value % 5
             sleep_timer.trigger()
 
-        elif new_value < current_value: # Decrease
+        elif new_value < current_value:  # Decrease
             current_value = new_value
             current_value = (current_value + 4) // 5 * 5
             sleep_timer.trigger()
 
-#         if r.value() != current_value:
-#             r.set(value=current_value)
-
-        if btn_state == [1, 0, 0, 1]: # Reset when btn held
+        if btn_state == [1, 0, 0, 1]:  # Reset when btn held
             r.reset()
             btn_state = [0, 0, 0, 0]
 
@@ -121,7 +118,7 @@ async def countDown(set_time):
 
 
 async def alarm():
-    """Blinks the time and makes a sound"""
+    """Blinks the time and makes a sound."""
     global btn_state
     btn_state = [0, 0, 0, 0]
     alarm_time = 0
@@ -140,11 +137,11 @@ async def main():
     # Short startup screen
     showTime(5999)
     sleep(3)
-    
+
     # Initiating local variables
     set_time = 0
-    
-    while True: # Main Loop
+
+    while True:  # Main Loop
         set_time = await setTime(set_time)
         set_time = await countDown(set_time)
         if set_time <= 0:
