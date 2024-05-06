@@ -23,7 +23,6 @@ r = RotaryIRQ(
 
 # Initiate button (using Pushbutton library)
 btn_pin = Pin(7, Pin.IN, Pin.PULL_UP)
-Pushbutton.debounce_ms = 100
 btn = Pushbutton(btn_pin, suppress=True)
 
 # Global variables
@@ -36,7 +35,6 @@ async def buttonMonitor(new_value, index):
     """Updates the button state history based on button press events."""
     global btn_state
     btn_state[index] = new_value
-    print(btn_state)
 
 
 # Assign functions to button events
@@ -47,11 +45,14 @@ btn.long_func(buttonMonitor, (1, 3))
 
 
 async def go_to_sleep():
+    global btn_state
     sleep_timer.stop()
     fillDisplay(0)
+    print("Natti", sleep_timer.rvalue())
     lowpower.dormant_until_pin(7)
-    global btn_state
+    await asyncio.sleep_ms(20)
     btn_state = [0, 0, 0, 0]
+    sleep_timer.trigger()
 
 
 sleep_timer = delay_ms.Delay_ms(go_to_sleep, duration=10000)
@@ -74,7 +75,6 @@ async def setTime(current_value=0):
     alarm_trg = False
     global btn_state
     btn_state = [0, 0, 0, 0]
-    await asyncio.sleep_ms(100)
     sleep_timer.trigger()
     while btn_state != [1, 1, 0, 0]:
         # Check for encoder changes
@@ -82,15 +82,21 @@ async def setTime(current_value=0):
         if new_value > current_value:  # Increase
             current_value = new_value
             current_value -= current_value % 5
+            print("Current time:", current_value)
             sleep_timer.trigger()
 
         elif new_value < current_value:  # Decrease
             current_value = new_value
             current_value = (current_value + 4) // 5 * 5
+            print("Current time:", current_value)
             sleep_timer.trigger()
+
+        if r.value() != current_value:
+            r.set(value=current_value)
 
         if btn_state == [1, 0, 0, 1]:
             r.reset()
+            print("Reset time")
             btn_state = [0, 0, 0, 0]
 
         showTime(current_value)
@@ -117,6 +123,7 @@ async def alarm():
     button_list = [0, 0, 0, 0]
     alarm_time = 0
     while btn_state == [0, 0, 0, 0] and alarm_time <= 10:
+        print("Alarm")
         showTime(0)
         await soundAlarm()
         await asyncio.sleep_ms(500)
@@ -131,16 +138,18 @@ async def main():
     alarm_trg = False
     set_time = 0
     showTime(5999)
-    sleep(3)
+    print("Starting hej")
+    sleep(10)
     r.set(0)
+    print("Starting")
     while True:
         task1 = asyncio.create_task(setTime(set_time))
-        set_time = await task1
+        set_time = await task1  # type: ignore
         task2 = asyncio.create_task(countDown(set_time))
-        set_time = await task2
+        set_time = await task2  # type: ignore
         if set_time <= 0:
             task3 = asyncio.create_task(alarm())
-            alarm_trg = await task3
+            alarm_trg = await task3  # type: ignore
 
 
 # Run the event loop
