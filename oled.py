@@ -1,6 +1,6 @@
 from machine import Pin, I2C
 from framebuf import FrameBuffer, MONO_HLSB
-import ssd1306  # type: ignore
+import ssd1306
 
 # using default address 0x3C
 oledWidth = 128
@@ -20,6 +20,18 @@ def showTime(countDown):
 def fillDisplay(value):
     display.fill(value)
     display.show()
+
+
+def invertDisplay(value):
+    display.invert(value)
+    display.show()
+
+
+def powerDisplay(value):
+    if value:
+        display.poweron()
+    elif not value:
+        display.poweroff()
 
 
 # Takes in bitmap of a converted string and shows it on the display

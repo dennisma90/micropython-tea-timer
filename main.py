@@ -5,7 +5,7 @@ from primitives import Pushbutton, delay_ms
 from buzzer_music import music
 from utime import sleep, sleep_ms
 import lowpower
-from oled import showTime, fillDisplay
+from oled import showTime, fillDisplay, invertDisplay, powerDisplay
 
 
 # Initiating encoder
@@ -14,7 +14,7 @@ r = RotaryIRQ(
     pin_num_dt=4,
     min_val=0,
     max_val=5999,  # Adjust max value if needed
-    reverse=True,  # Adjust if rotation direction needs swapping
+    reverse=False,  # Adjust if rotation direction needs swapping
     half_step=True,
     pull_up=True,
     incr=5,  # Adjust increment value per encoder step
@@ -47,10 +47,11 @@ async def go_to_sleep():
     """Executes when sleep_timer reaches 10s."""
     global btn_state
     sleep_timer.stop()
-    fillDisplay(0)
+    powerDisplay(0)
     lowpower.dormant_until_pin(7)
     sleep(1)
     btn_state = [0, 0, 0, 0]
+    powerDisplay(1)
     sleep_timer.trigger()
     await asyncio.sleep_ms(0)
 
@@ -65,6 +66,15 @@ async def soundAlarm():
     while mySong.tick():
         mySong.tick()
         await asyncio.sleep_ms(30)
+
+
+async def vibrateMotor(turn_on):
+    """Turns on vibration motor when True sent to function, send anything else to turn off vibration"""
+    motorpin = Pin(28, Pin.OUT, Pin.PULL_UP)
+    if turn_on:
+        motorpin.high()
+    else:
+        motorpin.low()
 
 
 async def setTime(current_value=0):
@@ -125,8 +135,11 @@ async def alarm():
     while btn_state == [0, 0, 0, 0] and alarm_time <= 10:
         showTime(0)
         await soundAlarm()
+        await vibrateMotor(True)
+        invertDisplay(True)
         await asyncio.sleep_ms(500)
-        fillDisplay(0)
+        await vibrateMotor(False)
+        invertDisplay(False)
         await asyncio.sleep_ms(500)
         alarm_time += 1
     return True
